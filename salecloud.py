@@ -6,16 +6,21 @@ import datetime,json,re,time
 import enchant
 from nltk import wordpunct_tokenize
 
-from multiprocessing import Pool
+#from multiprocessing import Pool
+import ConfigParser
+
+config = ConfigParser.RawConfigParser()
+config.read('twitter.credentials')
+
 # Go to http://dev.twitter.com and create an app. 
 # The consumer key and secret will be generated for you after
-consumer_key=""
-consumer_secret=""
+consumer_key=config.get('Credentials','consumer_key')
+consumer_secret=config.get('Credentials','consumer_secret')
 
 # After the step above, you will be redirected to your app's page.
 # Create an access token under the the "Your access token" section
-access_token=""
-access_token_secret=""
+access_token=config.get('Credentials','access_token')
+access_token_secret=config.get('Credentials','access_token')
 
 
 class StdOutListener(StreamListener):
