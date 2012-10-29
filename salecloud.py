@@ -9,13 +9,13 @@ from nltk import wordpunct_tokenize
 from multiprocessing import Pool
 # Go to http://dev.twitter.com and create an app. 
 # The consumer key and secret will be generated for you after
-consumer_key="hfCFxWaSxc5Tyjs0O1B7Cg"
-consumer_secret="ZpRAbm5cSo5QM3Al2vc0HE0qUny8RBXRwlFecOb4"
+consumer_key=""
+consumer_secret=""
 
 # After the step above, you will be redirected to your app's page.
 # Create an access token under the the "Your access token" section
-access_token="261074343-mya1UBLv4DFhCXnOv8hkkV5Jh6kZhb7Sff4oegK9"
-access_token_secret="y5YkAEOc3s6n4ETUrB9naXV737XvK5mpIqM5lWaLIZQ"
+access_token=""
+access_token_secret=""
 
 
 class StdOutListener(StreamListener):
