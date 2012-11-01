@@ -64,7 +64,7 @@
 	#tweetList > div p{
 		font-size:14px;
 		color:#003;
-		margin-top:5px;
+		margin-top:0px;
 	}
 	
 	#search{
@@ -114,6 +114,8 @@
 
 <script type="text/javascript" src="jquery-1.7.1.min.js"></script>
 <script type="text/javascript" src="jquery-ui-1.8.18.custom.min.js"></script>
+<script type="text/javascript" src="jquery.svg.min.js"></script>
+<script type="text/javascript" src="jquery.svganim.min.js"></script>
 <script src="leaflet.js"></script>
 <script type="text/javascript" src="underscore-min.js"></script>
 <script type="text/javascript" src="data-template.js"></script>
@@ -167,7 +169,8 @@ function createMap(){
 			var addedCircle = $("svg g:last-child path");
 			addedCircle.attr("pointid", point.pointid)
 			.attr("onclick","pointclick("+point.pointid+");")
-			.attr("active", 1);
+			.attr("active", 1)
+			.attr("stroke-opacity",1);
 			
 			/*
 			var popupHTML = '<h1 class="pTitle">' + film.title + '</h1><div class="pGroup"><p class="pLabel">Genre:</p><p class="pGenre">' + film.genre1 + '</p></div><div class="pGroup"><p class="pLabel">Year:</p><p class="pYear">' + film.year + '</p></div><div class="pGroup"><p class="pLabel">Location:</p><p class="pLocation">' + film.location + '</p></div><div class="pGroup"><p class="pLabel">Director:</p><p class="pDirector">' + film.director + '</p></div><div class="pGroup"><p class="pLabel">Starring:</p><p class="pActor">' + film.actor1 + ', ' + film.actor2 + '</p></div>';
@@ -176,6 +179,7 @@ function createMap(){
 			*/
 			addedCircle.attr("class", "leaflet-clickable shot");
 	});//each
+	setTimeout(filterMap, 500);//this is done just to animate the points initially
 };//createMap
 
 
@@ -184,45 +188,10 @@ function filterMap(){
 	var re = new RegExp('.*('+search_filter+').*','i');
 	_.each(data.points, function(point){
 		if(search_filter == '' || _.any(point.tweets, function(tweet){ return re.test(tweet.text);})){
-			$('svg g path[pointid="'+point.pointid+'"]').attr("active",1);
+			$('svg g path[pointid="'+point.pointid+'"]').attr("active",1).animate({svgStrokeWidth: 100, svgStrokeOpacity: 0}, 300, function(){ $(this).attr("stroke-width", 2).attr("stroke-opacity", 1);});
 		}//if(filter)
 	});//each
 }
-
-
-/*
-function createFilmList(){
-	var movieList = $("#movieList");
-	var films = [];
-	_.each(data, function(film){
-		var filmResult = _.find(films, function(filmid){return filmid==Number(film.id);});
-		if(filmResult==undefined){
-			movieList.append('<div class="movie" filmid="' + film.id + '" year="' + film.year + '" state="0"><div class="fColor" genre="'+ film.genre1 + '" year="' + film.year + '"></div><p filmid="' + film.id + '">' + film.title + '</p></div>');//state 0=unselected, 1=selected
-			films[films.length] = Number(film.id);
-		}
-	});//each
-};//createFilmList
-
-function showFilmList(lowerRange, upperRange){
-	$(".movie").hide().each(function(){
-		if(Number($(this).attr("year"))>=lowerRange && Number($(this).attr("year"))<upperRange){$(this).show();}
-	});
-};//showFilmList
-
-function showDots(lowerRange, upperRange){
-	$(".shot").hide().each(function(){
-		if($(this).attr("year")>=lowerRange && $(this).attr("year")<upperRange){$(this).show();}
-	});
-};
-
-function changeYearHeader(year){
-	$("#yearHeader").clearQueue().animate({top:300, opacity:0}, "fast", function(){$(this).html(year+"'s").css({top:-300}).animate({top:20, opacity:0.6}), "fast"});
-};
-
-function showMovieHeader(decade){
-	$("#movieHeader").text(decade+"'s Movies");
-};
-*/
 
 function pointclick(pointid){
 	var point = _.find(data.points, function(point){return point.pointid == pointid});
