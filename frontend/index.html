@@ -35,6 +35,65 @@
 		max-height:100px;
 	}
 	
+	#tabWrapper{
+		position:absolute;
+		right:10px;
+		top:10px;
+		width:240px;
+		overflow:auto;
+	}
+	
+	#tabWrapper .tab{
+		height:40px;
+		width:90px;
+		float:right;
+		border: 1px solid #CCC;
+		padding:10px;
+		text-align:center;
+	}
+	
+	#tabWrapper .tab:hover{
+		cursor:pointer;
+	}
+	
+	#tabWrapper .tab[active='1'], #tabWrapper .tab:hover{
+		background-color:#03F;
+		color:white;
+	}
+	
+	#search{
+		width:300px;
+		height:15px;
+		font-size:20px;
+		color:#666;
+		font-family: Tahoma, Geneva, sans-serif;
+		margin: 20px auto;
+		display:block;
+		border-radius:5px;
+		padding:10px;
+	}
+	
+	#searchicon-wrapper{
+		margin:0 auto;
+		width:300px;
+		position:relative;
+		top:-55px;
+	}
+		
+	#searchicon{
+		float:right;
+		max-height: 30px;
+	}
+	
+	#searchicon:hover{
+		cursor:pointer;
+		max-height:35px;
+	}
+	
+	
+	
+	/*Tweet List------------------------------------------------------------*/
+	
 	#tweetList{
 		position:absolute;
 		top:100px;
@@ -67,69 +126,80 @@
 		margin-top:0px;
 	}
 	
-	#search{
-		width:300px;
-		height:15px;
-		font-size:20px;
-		color:#666;
-		font-family: Tahoma, Geneva, sans-serif;
-		margin: 20px auto;
-		display:block;
-		border-radius:5px;
-		padding:10px;
-	}
 	
-	#searchicon-wrapper{
-		margin:0 auto;
-		width:300px;
-		position:relative;
-		top:-55px;
-	}
-		
-	#searchicon{
-		float:right;
-		max-height: 30px;
-	}
 	
-	#searchicon:hover{
-		cursor:pointer;
-		max-height:35px;
-	}
+	
+	/*Map--------------------------------------------------------------*/
 	
 	svg g path[active='0']{
 		display:none;
 	}
 
-	
-	
-	
-	
-	
 	.leaflet-popup-content-wrapper{
 		overflow:auto;
+	}
+	
+
+	
+	
+	/*Bubble---------------------------------------------------------------*/
+	#bubble{
+		position:absolute;
+		height:100%;
+		width:100%;
+		background-color:white;
+		z-index:5;
+		display:none;
+	}
+	
+	g[nodetopic='rootbubble']{
+		fill:white;
 	}
 	
 </style>
 
 
-<script type="text/javascript" src="jquery-1.7.1.min.js"></script>
-<script type="text/javascript" src="jquery-ui-1.8.18.custom.min.js"></script>
-<script type="text/javascript" src="jquery.svg.min.js"></script>
-<script type="text/javascript" src="jquery.svganim.min.js"></script>
-<script src="leaflet.js"></script>
-<script type="text/javascript" src="underscore-min.js"></script>
-<script type="text/javascript" src="data-template.js"></script>
+<script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.18.custom.min.js"></script>
+<script type="text/javascript" src="js/jquery.svg.min.js"></script>
+<script type="text/javascript" src="js/jquery.svganim.min.js"></script>
+<script type="text/javascript" src="js/leaflet.js"></script>
+<script type="text/javascript" src="js/underscore-min.js"></script>
+<script type="text/javascript" src="js/data-template.js"></script>
+<script type="text/javascript" src="js/d3.v2.min.js"></script>
 
 <script type="text/javascript">
 
 var search_filter = '';
 
+//Map Variables//////////////////
+var map;//variable used to refer to leaflet map object
+
+//Bubble Variables//////////////
+var canvas;//variable used to refer to d3 svg appended object
+var bubble;//variable to refer to d3 layout "pack" object
+
+
 $(document).ready(function(e) {
 	
 	resetMapPane();
-	$(window).resize(function() {resetMapPane();});
+	resetTweetListPane();
+	$(window).resize(function() {resetMapPane(); resetTweetListPane(); resetBubblePane();});
 	
 	createMap();
+	plotPoints();
+	setTimeout(animateActivePoints, 500);
+	
+	createCanvas();
+	createBubbles(bubble_data);
+
+	$('#tabWrapper .tab').click(function(){
+		if($(this).attr("active")==0){
+			$('#tabWrapper .tab').attr("active",0);
+			$(this).attr("active",1);
+			$(this).attr("ref")=="bubble" ? $("#bubble").show() : $("#bubble").hide();
+		}
+	});
 
 	$('#search').keypress(function(ev){
 		if (ev.which === 13) { 
@@ -145,19 +215,25 @@ $(document).ready(function(e) {
 
 });//document.ready
 
-function resetMapPane(){
-	$("#map").css({height:$(window).height()});
-    $("#tweetList").css({left:$(window).width()-380});
+function resetMapPane(){$("#map").css({height:$(window).height()});};
+
+function resetBubblePane(){
+	createCanvas();
+	createBubbles(bubble_data);
 };
 
+function resetTweetListPane(){$("#tweetList").css({left:$(window).width()-380});};
 
 function createMap(){
-	var map = new L.Map('map');
-	var cloudmade = new L.TileLayer('http://{s}.tile.cloudmade.com/fe0f9d1d3734474fb443d46889092d8e/1714/256/{z}/{x}/{y}.png', {maxZoom: 16, minZoom:11});
+	map = new L.Map('map');
+	var cloudmade = new L.TileLayer('http://{s}.tile.cloudmade.com/fe0f9d1d3734474fb443d46889092d8e/1714/256/{z}/{x}/{y}.png', {maxZoom: 16, minZoom:6});
 	var sf = new L.LatLng(37.7790, -122.4403);
 	map.setView(sf, 13).addLayer(cloudmade);
+};//createMap
 
-	_.each(data.points, function(point){
+function plotPoints(){
+	$("#map svg").empty();
+	_.each(map_data.points, function(point){
 			var circleLocation = new L.LatLng(Number(point.lat), Number(point.long));
     		var circleOptions = {
        		color: "#6da4dd",
@@ -166,55 +242,126 @@ function createMap(){
         	fillOpacity: point.opacity};
 			var circle = new L.Circle(circleLocation, point.size, circleOptions);
 			map.addLayer(circle);
-			var addedCircle = $("svg g:last-child path");
+			var addedCircle = $("#map svg g:last-child path");
 			addedCircle.attr("pointid", point.pointid)
 			.attr("onclick","pointclick("+point.pointid+");")
 			.attr("active", 1)
 			.attr("stroke-opacity",1);
-			
-			/*
-			var popupHTML = '<h1 class="pTitle">' + film.title + '</h1><div class="pGroup"><p class="pLabel">Genre:</p><p class="pGenre">' + film.genre1 + '</p></div><div class="pGroup"><p class="pLabel">Year:</p><p class="pYear">' + film.year + '</p></div><div class="pGroup"><p class="pLabel">Location:</p><p class="pLocation">' + film.location + '</p></div><div class="pGroup"><p class="pLabel">Director:</p><p class="pDirector">' + film.director + '</p></div><div class="pGroup"><p class="pLabel">Starring:</p><p class="pActor">' + film.actor1 + ', ' + film.actor2 + '</p></div>';
-			if(film.funfact!=null && film.funfact!=""){addedCircle.attr("funfact",film.funfact);popupHTML+='<div class="pGroup"><p class="pLabel">Fun Fact:</p><p class="pFunfact">' + film.funfact + '</p></div>';};
-			circle.bindPopup(popupHTML);
-			*/
 			addedCircle.attr("class", "leaflet-clickable shot");
 	});//each
-	setTimeout(filterMap, 500);//this is done just to animate the points initially
-};//createMap
+};
 
-
-function filterMap(){
-	$("svg g path").each(function(){ $(this).attr("active",0);});
+function filterMap(){//goes through map and sets points meeting search criteria to "active=1"
+	$("#map svg g path").each(function(){ $(this).attr("active",0);});
 	var re = new RegExp('.*('+search_filter+').*','i');
-	_.each(data.points, function(point){
+	_.each(map_data.points, function(point){
 		if(search_filter == '' || _.any(point.tweets, function(tweet){ return re.test(tweet.text);})){
-			$('svg g path[pointid="'+point.pointid+'"]').attr("active",1).animate({svgStrokeWidth: 100, svgStrokeOpacity: 0}, 300, function(){ $(this).attr("stroke-width", 2).attr("stroke-opacity", 1);});
-		}//if(filter)
+			$('#map svg g path[pointid="'+point.pointid+'"]').attr("active",1);
+		}
 	});//each
-}
+};
+
+function animateActivePoints(){//animates "active=1" points
+	$("#map svg g path[active='1']").each(function(){
+		$(this).animate({svgStrokeWidth: 100, svgStrokeOpacity: 0}, 300, function(){ $(this).attr("stroke-width", 2).attr("stroke-opacity", 1);});
+	});
+};
 
 function pointclick(pointid){
-	var point = _.find(data.points, function(point){return point.pointid == pointid});
-	var tweetList = document.getElementById('tweetList');
-	tweetList.innerHTML='';
-	tweetList.style.display = "block";
+	clearTweetList();
+	var point = _.find(map_data.points, function(point){return point.pointid == pointid});
 	var re = new RegExp('.*('+search_filter+').*','i');
 	_.each(point.tweets, function(tweet){
 		if(search_filter == '' || re.test(tweet.text)){
-			var newh2 = document.createElement('h2');
-			newh2.innerHTML = "@"+tweet.screen_name;
-			
-			var newp = document.createElement('p');
-			newp.innerHTML = tweet.text;
-			
-			var newdiv = document.createElement('div');
-			newdiv.appendChild(newh2);
-			newdiv.appendChild(newp);
-			
-			tweetList.appendChild(newdiv);
+			pushTweetToList(tweet.screen_name, tweet.text);
 		}
 	});
 }
+
+function clearTweetList(){
+	var tweetList = document.getElementById('tweetList');
+	tweetList.innerHTML='';
+	tweetList.style.display = "block";//this is just for "showing" it initially
+};
+
+function pushTweetToList(screenName, text){
+	var tweetList = document.getElementById('tweetList');
+	var newh2 = document.createElement('h2');
+	newh2.innerHTML = "@"+screenName;
+	
+	var newp = document.createElement('p');
+	newp.innerHTML = text;
+	
+	var newdiv = document.createElement('div');
+	newdiv.appendChild(newh2);
+	newdiv.appendChild(newp);
+	
+	tweetList.appendChild(newdiv);
+};
+
+function createCanvas(){
+	var top_margin = 100;
+	var tweetList_width = 400;
+	$('#bubble #canvas').empty().css({"margin-top":top_margin.toString()+"px"});
+	canvas_width = $(window).width()-tweetList_width;
+	canvas_height = $(window).height()-top_margin;
+	
+	canvas = d3.select('#canvas').append('svg')
+		.attr('width', canvas_width)
+		.attr('height', canvas_height);
+	
+	bubble = d3.layout.pack()
+		.sort(function comparator(a, b) {return b.value - a.value;})
+		.size([canvas_width, canvas_height])
+		.padding(10);
+};
+
+function createBubbles(bdata){
+		
+		var node = canvas.selectAll('g.node')
+			.data(bubble.nodes(bdata), function(d){return d.topic;})//d.topic must be unique. It is was is used to keepy consistancy between update/enter/remove
+		
+		//update	
+		node.transition()
+			.attr('transform', function(d){ return "translate(" + d.x + "," + d.y + ")";})
+			.selectAll('circle')
+			.attr("r", function(d){return d.r;})
+			.style("fill", function(d){return d.color;});
+		node.selectAll('text')
+			.transition()
+			.style("font-size", function(d){return (d.r*0.3).toString() + "px"});
+		
+		//enter
+		enter = node.enter().append('g')
+			.attr('class','node')
+			.attr('transform', function(d){ return "translate(" + d.x + "," + d.y + ")";})
+			.attr('nodetopic', function(d){if(d.topic){return d.topic;}else{return "rootbubble"}})
+			.on("click",nodeclick);
+		enter.append('circle')
+			.attr("r",0)
+			.attr("opacity", 0)
+			.transition()
+			.attr("r", function(d){return d.r;})
+			.attr("opacity", 1)
+			.style("fill", function(d){return d.color;});
+		enter.append("text")
+			.attr("text-anchor", "middle")
+			.text(function(d){return d.topic})
+			.style("font-size", 0)
+			.transition()
+			.style("font-size", function(d){return (d.r*0.3).toString() + "px"})
+			
+		//exit	
+		exit = node.exit();
+		exit.remove();
+		
+};//createBubbles
+
+
+function nodeclick(node){
+		//node object which has "tweets" attribute within it, or any other javascript object/variable
+		//alert(node.tweets[0].tweetid);
+};
 
 </script>
 
@@ -226,8 +373,14 @@ function pointclick(pointid){
 		<img src="images/logo.png" id="logo"/>
         <input type="text" name="search" id="search" placeholder="Search Tweets" />
         <div id="searchicon-wrapper"><img src="images/search.png" id="searchicon" /></div>
+        <div id="tabWrapper">
+        	<div id="mapTab" class="tab" active="1" ref="map">Map</div>
+        	<div id="bubbleTab" class="tab" active="0" ref="bubble">Bubble</div>
+        </div>
     </div>
+    
     <div id="tweetList"></div>
+    <div id="bubble"><div id="canvas"></div></div>
 	<div id="map"></div>
 
 </body>
