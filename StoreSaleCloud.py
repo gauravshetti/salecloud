@@ -29,12 +29,12 @@ access_token_secret = config.get('Credentials','access_token_secret')
 
 def isSalerelated(tweettxt):
 	tweettxt = tweettxt.encode('utf-8')
-	salepattern = 'holiday|guess|free|sale|sales|deal|promotion|discount|great%20price|promotions'
+	salepattern = 'holiday|guess|free|sale|sales|deal|promotion|discount|great%20price|promotions|off'
 	if re.search(salepattern, str(tweettxt).lower()):
 		return True
 
 def isGoodforSale(post):
-	if (post.created_at.date() > (datetime.date.today() - timedelta(3))):
+	if (post.created_at.date() > (datetime.date.today() - timedelta(2))):
 		if (isSalerelated(post.text)):
 			return True
 
@@ -149,10 +149,7 @@ def saveTweetsFormatted(tweetlist):
 	with open('output.json', 'w+') as fp:
 		json.dump(dataJson, fp, sort_keys=True, indent=4) 
 		
-if __name__ == '__main__':
-	auth = OAuthHandler(consumer_key, consumer_secret)
-	auth.set_access_token(access_token, access_token_secret)
-	api = tweepy.API(auth)
+def saveAllStoreTweets(api):
 	storedetails_filename = 'storedetails.txt'
 	ids_filename = "ids.txt"
 	savedTweets_filename = "savedTweets.txt"
@@ -177,5 +174,16 @@ if __name__ == '__main__':
 			tweetList.append(savedtweet)
 	saveNewTweet(savedTweets_filename,tweetList)	
 	saveTweetsFormatted(tweetList)
+
+def run(api):
+	print("running saveAllStoreTweets")
+	saveAllStoreTweets(api)
+	if not END:
+		threading.Timer(10.0, run, [api]).start()
 		
-		
+if __name__ == '__main__':
+	auth = OAuthHandler(consumer_key, consumer_secret)
+	auth.set_access_token(access_token, access_token_secret)
+	api = tweepy.API(auth)
+	END = False
+	threading.Timer(1.0, run, [api]).start()		
