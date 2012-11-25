@@ -12,6 +12,10 @@ import ConfigParser
 config = ConfigParser.RawConfigParser()
 config.read('twitter.credentials')
 
+<<<<<<< HEAD
+
+=======
+>>>>>>> f99e5b24f84aa957b7c8b15c2ca37e8a32502088
 # Go to http://dev.twitter.com and create an app. 
 # The consumer key and secret will be generated for you after
 
