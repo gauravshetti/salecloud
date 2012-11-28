@@ -150,10 +150,12 @@
 		background-color:white;
 		z-index:5;
 		display:none;
+		opacity:0.8;
 	}
 	
 	g[nodetopic='rootbubble']{
 		fill:white;
+		opacity:0.8;
 	}
 	
 </style>
@@ -165,7 +167,7 @@
 <script type="text/javascript" src="js/jquery.svganim.min.js"></script>
 <script type="text/javascript" src="js/leaflet.js"></script>
 <script type="text/javascript" src="js/underscore-min.js"></script>
-<script type="text/javascript" src="js/data-template.js"></script>
+<!--<script type="text/javascript" src="js/data-template.js"></script>-->
 <script type="text/javascript" src="js/d3.v2.min.js"></script>
 
 <script type="text/javascript">
@@ -174,10 +176,14 @@ var search_filter = '';
 
 //Map Variables//////////////////
 var map;//variable used to refer to leaflet map object
+var map_data;//assigned via ajax
 
 //Bubble Variables//////////////
 var canvas;//variable used to refer to d3 svg appended object
 var bubble;//variable to refer to d3 layout "pack" object
+var bubble_data;//assigned via ajax
+
+var domain = "http://127.0.0.1"
 
 
 $(document).ready(function(e) {
@@ -187,11 +193,11 @@ $(document).ready(function(e) {
 	$(window).resize(function() {resetMapPane(); resetTweetListPane(); resetBubblePane();});
 	
 	createMap();
-	plotPoints();
-	setTimeout(animateActivePoints, 500);
-	
 	createCanvas();
-	createBubbles(bubble_data);
+	//plotPoints(map_data.points);
+	ajaxMap();
+	ajaxBubbles();
+	setTimeout(animateActivePoints, 500);
 
 	$('#tabWrapper .tab').click(function(){
 		if($(this).attr("active")==0){
@@ -203,15 +209,15 @@ $(document).ready(function(e) {
 
 	$('#search').keypress(function(ev){
 		if (ev.which === 13) { 
-			search_filter = $("#search").val();
-			filterMap();
+			runSearch(getCurrentContext());
    		} 
 	});
 	
 	$('#searchicon').click(function(){
-		search_filter = $("#search").val();
-		filterMap();
+		runSearch(getCurrentContext());
 	})
+	
+	setInterval(intervalHandler, 300000);
 
 });//document.ready
 
@@ -223,6 +229,44 @@ function resetBubblePane(){
 };
 
 function resetTweetListPane(){$("#tweetList").css({left:$(window).width()-380});};
+
+function getCurrentContext(){//returns "map" or "bubble" depending on current tab selected
+	return $("#tabWrapper .tab[active='1']").attr("ref");
+};
+
+function intervalHandler(){
+	ajaxMap();
+	ajaxBubbles();
+};
+
+function ajaxBubbles(){
+	$.ajax({
+		type:"GET",
+		url: domain + "/entities" + search_filter == '' ? '' : '/' + search_filter.replace(/\s/g,'%20'),
+		success: function(data, status){bubble_data = data; createBubbles()},
+		dataType: "json"
+	});
+};
+
+function ajaxMap(){
+	$.ajax({
+		type:"GET",
+		url: domain + "/points",
+		success: function(data, status){map_data = data; plotPoints()},
+		dataType: "json"
+	});
+};
+
+function runSearch(pane){
+	search_filter = $("#search").val();
+	if(pane == 'map'){
+		filterMap();
+		animateActivePoints();
+	}
+	else{
+		ajaxBubbles();
+	}
+};
 
 function createMap(){
 	map = new L.Map('map');
@@ -316,10 +360,10 @@ function createCanvas(){
 		.padding(10);
 };
 
-function createBubbles(bdata){
+function createBubbles(){
 		
 		var node = canvas.selectAll('g.node')
-			.data(bubble.nodes(bdata), function(d){return d.topic;})//d.topic must be unique. It is was is used to keepy consistancy between update/enter/remove
+			.data(bubble.nodes(bubble_data), function(d){return d.topic;})//d.topic must be unique. It is was is used to keepy consistancy between update/enter/remove
 		
 		//update	
 		node.transition()
@@ -359,6 +403,8 @@ function createBubbles(bdata){
 
 
 function nodeclick(node){
+		clearTweetList();
+		pushTweetToList(node.tweets[0].screen_name, node.tweets[0].text)
 		//node object which has "tweets" attribute within it, or any other javascript object/variable
 		//alert(node.tweets[0].tweetid);
 };
