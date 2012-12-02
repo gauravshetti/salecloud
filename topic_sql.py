@@ -27,6 +27,7 @@ class topic():
 	def close_connection(self,con):
 		con.close()
 
+		
 	def update_db(self,con):
 		cur = con.cursor()
 		cur.execute("SELECT tweet_text,tweetid FROM tweets WHERE processed = 0")
