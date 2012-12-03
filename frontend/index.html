@@ -20,36 +20,38 @@
 		position:fixed;
 		top:0px;
 		left:0px;
-		height:80px;
+		height:62px;
 		width:100%;
-		background-color:#3fa9f5;	
+		background-color:#333;	
 		z-index:10;
-		border-bottom: 2px solid #d1d1d1;
+		border-bottom: 4px solid #06F;
 	}
 	
 	#logo{
 		position:absolute;
 		top:10px;
-		left:30px;
+		left:40px;
 		z-index:1000;
 		max-height:100px;
 	}
 	
+	#logo:hover{
+		cursor:pointer;
+	}
+	
 	#tabWrapper{
-		position:absolute;
-		right:10px;
-		top:10px;
-		width:240px;
+		margin: 13px auto;
+		width:340px;
 		overflow:auto;
 	}
 	
 	#tabWrapper .tab{
-		height:40px;
-		width:90px;
-		float:right;
-		border: 1px solid #CCC;
-		padding:10px;
+		height:50px;
+		width:150px;
+		float:left;
 		text-align:center;
+		border-radius: 3px;
+		margin-left:4px;
 	}
 	
 	#tabWrapper .tab:hover{
@@ -57,27 +59,40 @@
 	}
 	
 	#tabWrapper .tab[active='1'], #tabWrapper .tab:hover{
-		background-color:#03F;
+		background-color:#06F;
 		color:white;
+		background-position:bottom;
 	}
 	
+	#mapTab{
+		background-image:url(images/map-tab.png)
+	}
+	#bubbleTab{
+		background-image:url(images/bubble-tab.png)
+	}
+		
 	#search{
-		width:300px;
+		width:340px;
 		height:15px;
-		font-size:20px;
+		font-size:16px;
 		color:#666;
 		font-family: Tahoma, Geneva, sans-serif;
-		margin: 20px auto;
 		display:block;
 		border-radius:5px;
 		padding:10px;
+		position:absolute;
+		right:20px;
+		top:10px;
+		z-index:1000;
+		border:1px solid #000;
 	}
 	
 	#searchicon-wrapper{
-		margin:0 auto;
-		width:300px;
-		position:relative;
-		top:-55px;
+		width:50px;
+		position:absolute;
+		top:13px;
+		right:23px;
+		z-index:1001;
 	}
 		
 	#searchicon{
@@ -101,8 +116,8 @@
 		width:360px;
 		z-index:1000;
 		border:solid 1px #CCCCCC;
-		background-color:#EEE;
-		opacity:0.7;
+		background-color:#04A;
+		opacity:0.8;
 		border-radius:5px;
 		max-height:80%;
 		overflow:auto;
@@ -116,13 +131,13 @@
 	
 	#tweetList > div h2{
 		font-size:12px;
-		color:#003;
+		color:#FFF;
 		margin-bottom:0px;
 	}
 	
 	#tweetList > div p{
 		font-size:14px;
-		color:#003;
+		color:#FFF;
 		margin-top:0px;
 	}
 	
@@ -153,9 +168,26 @@
 		opacity:0.8;
 	}
 	
-	g[nodetopic='rootbubble']{
+	#canvas svg g[nodetopic='rootbubble']{
 		fill:white;
 		opacity:0.8;
+		cursor:default !important;
+	}
+	#canvas svg g[nodetopic='rootbubble'] circle{
+		stroke-width:0px !important;
+	}
+	
+	#canvas svg g.node text{
+		fill:white;
+	}
+	
+	#canvas svg g.node:hover{
+		cursor:pointer;
+	}
+	
+	#canvas svg g.node:hover circle, #canvas svg g[active='1'] circle{
+		stroke:#333;
+		stroke-width:4px;
 	}
 	
 </style>
@@ -183,7 +215,7 @@ var canvas;//variable used to refer to d3 svg appended object
 var bubble;//variable to refer to d3 layout "pack" object
 var bubble_data;//assigned via ajax
 
-var domain = "http://127.0.0.1"
+var domain = "http://127.0.0.1:8000"
 
 
 $(document).ready(function(e) {
@@ -194,7 +226,10 @@ $(document).ready(function(e) {
 	
 	createMap();
 	createCanvas();
+	
 	//plotPoints(map_data.points);
+	//createBubbles()
+	
 	ajaxMap();
 	ajaxBubbles();
 	setTimeout(animateActivePoints, 500);
@@ -204,17 +239,26 @@ $(document).ready(function(e) {
 			$('#tabWrapper .tab').attr("active",0);
 			$(this).attr("active",1);
 			$(this).attr("ref")=="bubble" ? $("#bubble").show() : $("#bubble").hide();
+		} else{
+			$("#search").val('');
+			runSearch();
 		}
 	});
 
 	$('#search').keypress(function(ev){
 		if (ev.which === 13) { 
-			runSearch(getCurrentContext());
-   		} 
+			runSearch();
+   		}
+	});
+	
+	$('#search').keyup(function(ev){
+		if($("#search").val() == ''){
+			runSearch();
+		}
 	});
 	
 	$('#searchicon').click(function(){
-		runSearch(getCurrentContext());
+		runSearch();
 	})
 	
 	setInterval(intervalHandler, 300000);
@@ -240,37 +284,30 @@ function intervalHandler(){
 };
 
 function ajaxBubbles(){
-	$.ajax({
-		type:"GET",
-		url: domain + "/entities" + search_filter == '' ? '' : '/' + search_filter.replace(/\s/g,'%20'),
-		success: function(data, status){bubble_data = data; createBubbles()},
-		dataType: "json"
-	});
+	var url = domain+'/entities?';
+	if(search_filter != ''){
+		url += "q=" + search_filter.replace(/\s/g,'%20') + '&';
+	}
+	url += "callback=?";
+	$.getJSON(url,function(data, status){bubble_data = data; createBubbles()});
 };
 
 function ajaxMap(){
-	$.ajax({
-		type:"GET",
-		url: domain + "/points",
-		success: function(data, status){map_data = data; plotPoints()},
-		dataType: "json"
-	});
+	var url = domain+'/points?callback=?';
+	$.getJSON(url,function(data, status){map_data = data; plotPoints()});
 };
 
-function runSearch(pane){
+function runSearch(){
 	search_filter = $("#search").val();
-	if(pane == 'map'){
-		filterMap();
-		animateActivePoints();
-	}
-	else{
-		ajaxBubbles();
-	}
+	clearTweetList();
+	filterMap();
+	animateActivePoints();
+	ajaxBubbles();
 };
 
 function createMap(){
 	map = new L.Map('map');
-	var cloudmade = new L.TileLayer('http://{s}.tile.cloudmade.com/fe0f9d1d3734474fb443d46889092d8e/1714/256/{z}/{x}/{y}.png', {maxZoom: 16, minZoom:6});
+	var cloudmade = new L.TileLayer('http://{s}.tile.cloudmade.com/fe0f9d1d3734474fb443d46889092d8e/74663/256/{z}/{x}/{y}.png', {maxZoom: 16, minZoom:6});
 	var sf = new L.LatLng(37.7790, -122.4403);
 	map.setView(sf, 13).addLayer(cloudmade);
 };//createMap
@@ -280,7 +317,7 @@ function plotPoints(){
 	_.each(map_data.points, function(point){
 			var circleLocation = new L.LatLng(Number(point.lat), Number(point.long));
     		var circleOptions = {
-       		color: "#6da4dd",
+       		color: "#191461",
 			weight: 2,
         	fillColor: point.color,
         	fillOpacity: point.opacity};
@@ -334,18 +371,18 @@ function pushTweetToList(screenName, text){
 	newh2.innerHTML = "@"+screenName;
 	
 	var newp = document.createElement('p');
+	text = text.replace( /(http:\/\/[^\s]+)/gi , '<a href="$1" target="_blank">$1</a>' );
 	newp.innerHTML = text;
 	
 	var newdiv = document.createElement('div');
 	newdiv.appendChild(newh2);
 	newdiv.appendChild(newp);
-	
 	tweetList.appendChild(newdiv);
 };
 
 function createCanvas(){
-	var top_margin = 100;
-	var tweetList_width = 400;
+	var top_margin = 60;
+	var tweetList_width = 380;
 	$('#bubble #canvas').empty().css({"margin-top":top_margin.toString()+"px"});
 	canvas_width = $(window).width()-tweetList_width;
 	canvas_height = $(window).height()-top_margin;
@@ -362,18 +399,24 @@ function createCanvas(){
 
 function createBubbles(){
 		
-		var node = canvas.selectAll('g.node')
-			.data(bubble.nodes(bubble_data), function(d){return d.topic;})//d.topic must be unique. It is was is used to keepy consistancy between update/enter/remove
+		$('#canvas svg').empty()
 		
+		var node = canvas.selectAll('g')
+			.data(bubble.nodes(bubble_data), function(d){return d.topic;});//d.topic must be unique. It is was is used to keepy consistancy between update/enter/remove
+		/*
 		//update	
 		node.transition()
 			.attr('transform', function(d){ return "translate(" + d.x + "," + d.y + ")";})
 			.selectAll('circle')
-			.attr("r", function(d){return d.r;})
+			.attr("r", function(d){console.log(d.r);return d.r;})
 			.style("fill", function(d){return d.color;});
 		node.selectAll('text')
 			.transition()
 			.style("font-size", function(d){return (d.r*0.3).toString() + "px"});
+		*/
+		//exit	
+		exit = node.exit();
+		exit.remove();
 		
 		//enter
 		enter = node.enter().append('g')
@@ -395,9 +438,7 @@ function createBubbles(){
 			.transition()
 			.style("font-size", function(d){return (d.r*0.3).toString() + "px"})
 			
-		//exit	
-		exit = node.exit();
-		exit.remove();
+		
 		
 };//createBubbles
 
@@ -405,6 +446,8 @@ function createBubbles(){
 function nodeclick(node){
 		clearTweetList();
 		pushTweetToList(node.tweets[0].screen_name, node.tweets[0].text)
+		$('#canvas svg g').attr("active",0);
+		$(this).attr("active",1);
 		//node object which has "tweets" attribute within it, or any other javascript object/variable
 		//alert(node.tweets[0].tweetid);
 };
@@ -416,12 +459,12 @@ function nodeclick(node){
 <body>
 	
 	<div id="header">
-		<img src="images/logo.png" id="logo"/>
+		<img src="images/logo.png" id="logo" onClick="window.location.reload()"/>
         <input type="text" name="search" id="search" placeholder="Search Tweets" />
         <div id="searchicon-wrapper"><img src="images/search.png" id="searchicon" /></div>
         <div id="tabWrapper">
-        	<div id="mapTab" class="tab" active="1" ref="map">Map</div>
-        	<div id="bubbleTab" class="tab" active="0" ref="bubble">Bubble</div>
+        	<div id="mapTab" class="tab" active="1" ref="map"></div>
+        	<div id="bubbleTab" class="tab" active="0" ref="bubble"></div>
         </div>
     </div>
     
