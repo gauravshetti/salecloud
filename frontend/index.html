@@ -122,6 +122,7 @@
 		max-height:80%;
 		overflow:auto;
 		display:none;
+		right:20px;
 	}
 	
 	#tweetList > div{
@@ -141,6 +142,20 @@
 		margin-top:0px;
 	}
 	
+	#tweetListClose{
+		background-image:url(images/tweetlist-close.png);
+		height:30px;
+		width:30px;
+		position:absolute;
+		top:85px;
+		z-index:1010;
+		right:10px;
+		display:none;
+	}
+	#tweetListClose:hover{
+		background-position:bottom;
+		cursor:pointer;
+	}
 	
 	
 	
@@ -221,8 +236,7 @@ var domain = "http://127.0.0.1:8000"
 $(document).ready(function(e) {
 	
 	resetMapPane();
-	resetTweetListPane();
-	$(window).resize(function() {resetMapPane(); resetTweetListPane(); resetBubblePane();});
+	$(window).resize(function() {resetMapPane(); resetBubblePane();});
 	
 	createMap();
 	createCanvas();
@@ -261,6 +275,10 @@ $(document).ready(function(e) {
 		runSearch();
 	})
 	
+	$('#tweetListClose').click(function(){
+		clearTweetList();
+	});
+	
 	setInterval(intervalHandler, 300000);
 
 });//document.ready
@@ -271,8 +289,6 @@ function resetBubblePane(){
 	createCanvas();
 	createBubbles(bubble_data);
 };
-
-function resetTweetListPane(){$("#tweetList").css({left:$(window).width()-380});};
 
 function getCurrentContext(){//returns "map" or "bubble" depending on current tab selected
 	return $("#tabWrapper .tab[active='1']").attr("ref");
@@ -363,6 +379,8 @@ function clearTweetList(){
 	var tweetList = document.getElementById('tweetList');
 	tweetList.innerHTML='';
 	tweetList.style.display = "block";//this is just for "showing" it initially
+	$('#tweetListClose').hide();
+	$('#canvas svg g').attr("active",0);
 };
 
 function pushTweetToList(screenName, text){
@@ -378,6 +396,7 @@ function pushTweetToList(screenName, text){
 	newdiv.appendChild(newh2);
 	newdiv.appendChild(newp);
 	tweetList.appendChild(newdiv);
+	$('#tweetListClose').show();
 };
 
 function createCanvas(){
@@ -468,6 +487,7 @@ function nodeclick(node){
         </div>
     </div>
     
+    <div id="tweetListClose"></div>
     <div id="tweetList"></div>
     <div id="bubble"><div id="canvas"></div></div>
 	<div id="map"></div>
