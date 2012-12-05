@@ -156,13 +156,21 @@
 		background-position:bottom;
 		cursor:pointer;
 	}
+	#tweetList a{
+		color:#FBA3A3;
+	}
 	
 	
 	
 	/*Map--------------------------------------------------------------*/
 	
-	svg g path[active='0']{
+	#map svg g path[active='0']{
 		display:none;
+	}
+	
+	#map svg g path[select='1']{
+		fill:red;
+		stroke:red;
 	}
 
 	.leaflet-popup-content-wrapper{
@@ -203,6 +211,25 @@
 	#canvas svg g.node:hover circle, #canvas svg g[active='1'] circle{
 		stroke:#333;
 		stroke-width:4px;
+	}
+	
+	/*follow us--------------------------------*/
+	#followus{
+		position:fixed;
+		bottom:10px;
+		right:10px;
+		height:20px;
+		width:380px;
+		font-size:10pt;
+	}
+	#followus img{
+		float:left;
+		max-height:20px;
+		margin-right:10px;
+	}
+	#followus p{
+		margin:0px;
+		padding:0px;
 	}
 	
 </style>
@@ -343,6 +370,7 @@ function plotPoints(){
 			addedCircle.attr("pointid", point.pointid)
 			.attr("onclick","pointclick("+point.pointid+");")
 			.attr("active", 1)
+			.attr("select",0)
 			.attr("stroke-opacity",1);
 			addedCircle.attr("class", "leaflet-clickable shot");
 	});//each
@@ -373,6 +401,7 @@ function pointclick(pointid){
 			pushTweetToList(tweet.screen_name, tweet.text);
 		}
 	});
+	$("#map svg g path[pointid='"+pointid+"']").attr("select", 1)
 }
 
 function clearTweetList(){
@@ -381,6 +410,7 @@ function clearTweetList(){
 	tweetList.style.display = "block";//this is just for "showing" it initially
 	$('#tweetListClose').hide();
 	$('#canvas svg g').attr("active",0);
+	$("#map svg g path").attr("select", 0)
 };
 
 function pushTweetToList(screenName, text){
@@ -479,7 +509,7 @@ function nodeclick(node){
 	
 	<div id="header">
 		<img src="images/logo.png" id="logo" onClick="window.location.reload()"/>
-        <input type="text" name="search" id="search" placeholder="Search Tweets" />
+        <input type="text" name="search" id="search" placeholder="Looking for something specific..?" />
         <div id="searchicon-wrapper"><img src="images/search.png" id="searchicon" /></div>
         <div id="tabWrapper">
         	<div id="mapTab" class="tab" active="1" ref="map"></div>
@@ -491,6 +521,12 @@ function nodeclick(node){
     <div id="tweetList"></div>
     <div id="bubble"><div id="canvas"></div></div>
 	<div id="map"></div>
+	<div id="followus">
+		<a href="https://twitter.com/SaleCloud" target="_blank">
+			<img src="images/bird.png"/>
+			<p>Follow us to include your business on @SaleCloud</p>
+		</a>
+	</div>
 
 </body>
 </html>
