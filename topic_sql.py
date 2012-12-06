@@ -8,6 +8,7 @@ import pickle
 import time
 import sys
 
+
 class topic():
 	
 	hashtag = re.compile('#(\w+)') 		#identify hastags
