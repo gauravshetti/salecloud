@@ -65,8 +65,6 @@ def bind_api(**config):
             # This causes Twitter to issue 301 redirect.
             # See Issue https://github.com/tweepy/tweepy/issues/12
             self.host = "api.twitter.com"
-            print self.host
-            print self.scheme
             self.headers['Host'] = self.host
 
         def build_parameters(self, args, kargs):
@@ -107,7 +105,6 @@ def bind_api(**config):
         def execute(self):
             # Build the request URL
             url = self.api_root + self.path
-            print url
             if len(self.parameters):
                 url = '%s?%s' % (url, urllib.urlencode(self.parameters))
 
@@ -147,8 +144,6 @@ def bind_api(**config):
 
                 # Execute request
                 try:
-                    print self.headers
-                    print url
                     conn.request(self.method, url, headers=self.headers, body=self.post_data)
                     resp = conn.getresponse()
                     print resp
